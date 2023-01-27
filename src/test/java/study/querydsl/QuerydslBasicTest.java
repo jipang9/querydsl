@@ -5,7 +5,9 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.assertj.core.api.Assertions;
@@ -450,8 +452,8 @@ public class QuerydslBasicTest {
         // 방식 3 ) -> 생성자 방식  => 타입이 무조건 맞아야 함.
         List<MemberDto> result = queryFactory
                 .select(Projections.constructor(MemberDto.class,
-                                member.username,
-                                member.age))
+                        member.username,
+                        member.age))
                 .from(member)
                 .fetch();
         for (MemberDto memberDto : result) {
@@ -511,17 +513,17 @@ public class QuerydslBasicTest {
         List<Member> result = searchMember1(nameParam, ageParam);
         Assertions.assertThat(result.size()).isEqualTo(1);
 
-        }
+    }
 
     private List<Member> searchMember1(String nameParam, Integer ageParam) {
         // 들어온 파라미터의 조건에 따라서 값이 바뀌어야한다 .
         BooleanBuilder builder = new BooleanBuilder();
 
         // and 조건
-        if(nameParam!= null){
+        if (nameParam != null) {
             builder.and(member.username.eq(nameParam));
         }
-        if(ageParam != null){
+        if (ageParam != null) {
             builder.and(member.age.eq(ageParam));
         }
 
@@ -529,5 +531,52 @@ public class QuerydslBasicTest {
                 .selectFrom(member)
                 .where(builder)
                 .fetch();
+    }
+
+    /**
+     * 동적 쿼리  - Where 다중 파라미터 사용 *
+     */
+    @Test
+    public void dynamicQuery_WhereParam() {
+
+        String nameParam = "member1";
+        Integer ageParam = 10;
+
+        List<Member> result = searchMember2(nameParam, ageParam);
+        Assertions.assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember2(String nameParam, Integer ageParam) {
+        return queryFactory
+                .selectFrom(member)
+//                .where(usernameEqual(nameParam), ageEqual(ageParam))
+                .where(allEqual(nameParam, ageParam))
+                .fetch();
+    }
+
+    private BooleanExpression usernameEqual(String nameParam) {
+        return nameParam != null ? member.username.eq(nameParam) : null;
+    }
+
+    private BooleanExpression ageEqual(Integer ageParam) {
+        return ageParam!=null ? member.age.eq(ageParam) : null;
+    }
+
+    // 이렇게 메소드를 분리하면 아래와 같은 장점이 생김 ( 조립이 가능하다는 점. )  + ( 재사용성에서도 유리한 이점이 있다 ) + ( query의 가독성이 증가한다 )
+    private BooleanExpression allEqual(String nameParam, Integer ageParam){
+        return usernameEqual(nameParam).and(ageEqual(ageParam));
+    }
+
+    @Test
+    public void bulkUpdate(){
+
+        long count = queryFactory.update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+
+        //왜 스프링에서는 영속성 컨택스트라는 개념이 존재할까? -> 해결
+
+
     }
 }
