@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: local
+    active: test
   datasource:
     driverClassName: org.mariadb.jdbc.Driver
     url: jdbc:mariadb://localhost:3306/querydsl
