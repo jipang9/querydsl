@@ -122,6 +122,7 @@ public class QuerydslBasicTest {
     Member fetchOne = queryFactory
         .selectFrom(member)
         .fetchOne();
+
     // 처음 한 건 조회
     Member fetchFirst = queryFactory
         .selectFrom(member)
@@ -318,6 +319,7 @@ public class QuerydslBasicTest {
         .fetchOne();
 
     boolean loaded = emf.getPersistenceUnitUtil().isLoaded(member1.getTeam());
+
     assertThat(loaded).as(" 패치 조인 미적용 ").isFalse();
 
   }
@@ -334,6 +336,7 @@ public class QuerydslBasicTest {
         .fetchOne();
 
     boolean loaded = emf.getPersistenceUnitUtil().isLoaded(member1.getTeam());
+
     assertThat(loaded).as(" 패치 조인").isTrue();
 
   }
@@ -376,6 +379,30 @@ public class QuerydslBasicTest {
     assertThat(result).extracting("age")
         .containsExactly(30, 40);
 
+  }
+
+  /**
+   * 서브 쿼리를 여러 건 처리해야하면, In 조건을 이용하면 된다. (where 절에 in )*
+   */
+
+  @Test
+  public void selectQuery() {
+    QMember memberSub = new QMember("memberSub");
+
+    List<Tuple> fetch = queryFactory
+        .select(member.username,
+            JPAExpressions
+                .select(memberSub.age.avg())
+                .from(memberSub)
+        ).from(member)
+        .fetch();
+
+    for (Tuple tuple : fetch) {
+      System.out.println("username = " + tuple.get(member.username));
+      System.out.println("age = " +
+          tuple.get(JPAExpressions.select(memberSub.age.avg())
+              .from(memberSub)));
+    }
   }
 
   @Test
@@ -519,7 +546,6 @@ public class QuerydslBasicTest {
     if (ageParam != null) {
       builder.and(member.age.eq(ageParam));
     }
-
     return queryFactory
         .selectFrom(member)
         .where(builder)
@@ -559,6 +585,7 @@ public class QuerydslBasicTest {
   private BooleanExpression allEqual(String nameParam, Integer ageParam) {
     return usernameEqual(nameParam).and(ageEqual(ageParam));
   }
+
 
   @Test
   public void bulkUpdate() {

@@ -1,4 +1,4 @@
-buildscript {
+buildscript { // query dsl 추가
     ext {
         queryDslVersion = "5.0.0"
     }
